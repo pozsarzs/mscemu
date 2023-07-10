@@ -1,0 +1,237 @@
+Mini serial console
+~~~~~~~~~~~~~~~~~~~
+About this device
+-----------------
+  This is a Raspberry Pi Pico-based device. The display is 20x4 character-sized
+  liquid crystal display, which displays 20x4 size area of the larger size
+  virtual screen. This area is a can be moved with buttons. The default size of
+  the virtual screen is 80x25 characters, this value can be set in the program.
+
+  The circuit has three serial ports, depending on the setting, all three can be
+  used for data and system message transmission, or both at the same time. The #0
+  serial port is via USB port, #1 is a 3.3V TTL port, #2 is a conventional RS-232
+  serial port. Serial #1 can be connected to a 5V TTL serial port with an
+  external level shifter circuit.
+
+  You can check the mini serial console with 'mm8d-msctest.py' program, it is
+  emulates operation of the MM8D daemon.
+
+  Homepage:       <http://www.pozsarzs.hu/hardwares/msc_en.html>
+  On Hackster.io: <https://www.hackster.io/pozsarzs/mini-serial-console-with-three-different-serial-ports-f57d2d>
+  On Github:
+    - hardware:   <https://github.com/pozsarzs/mini_serial_console-hw>
+    - software:   <https://github.com/pozsarzs/mini_serial_console-sw>
+
+
+Button functions
+
+  Button  Mode #0     Mode #1     Mode #2     Mode #3/0   Mode #3/1   Mode #3/2
+  -------------------------------------------------------------------------------
+   PB0    move left   move left   move left                           move left
+   PB1    move right  move right  move right                          move right
+   PB2                move up     move up     page up     page up     scroll up
+   PB3                move down   move down   page down   pahe down   scroll down
+   PB4                                        submode     submode     submode
+   PB5                                                                lock scroll
+
+
+Serial ports
+
+  Serial0:  via USB port
+  Serial1:  UART0  TTL    0/3.3V
+  Serial2:  UART1  RS232  +/-12V
+
+
+Incoming (binary) data lines in Mode #3
+---------------------------------------
+
+   0123456789ABC
+  "CH..........."
+
+    0:   'C'                                  0x43
+    1:   'H'                                  0x48
+    2:   number of channel                    0x00
+    3:   overcurrent breaker error            0x00: closed 0x01: opened
+    4:   water pump pressure error (no water) 0x00: good   0x01: bad
+    5:   water pump pressure error (clogging) 0x00: good   0x01: bad
+    6:   external temperature in Â°C          (0x00-0x80)
+    7:   status of water pump and tube #1     0x00: off    0x01: on     0x02: always off 0x03: always on
+    8:   status of water pump and tube #2     0x00: off    0x01: on     0x02: always off 0x03: always on
+    9:   status of water pump and tube #3     0x00: off    0x01: on     0x02: always off 0x03: always on
+    A-C: unused                               0x0F
+
+    0:   'C'                                  0x43
+    1:   'H'                                  0x48
+    2:   number of channel                    0x01-0x08
+    3:   temperature in Â°C                   (0x00-0x80)
+    4:   relative humidity                   (0x00-0x80)
+    5:   relative unwanted gas concentrate   (0x00-0x80)
+    6:   operation mode                       0x00: hyphae 0x01: mushr. 0xFF: disabled channel
+    7:   manual mode                          0x00: auto   0x01: manual
+    8:   overcurrent breaker error            0x00: closed 0x01: opened
+    9:   status of door (alarm)               0x00: closed 0x01: opened
+    A:   status of lamp output                0x00: off    0x01: on     0x02: always off 0x03: always on
+    B:   status of ventilator output          0x00: off    0x01: on     0x02: always off 0x03: always on
+    C:   status of heater output              0x00: off    0x01: on     0x02: always off 0x03: always on
+
+
+   0123456789ABCD
+  "SP............"
+
+    0:   'S'                                  0x53
+    1:   'P'                                  0x50
+    2:   effective mains voltage (raw data)  (0x00-0xFF) upper byte
+    3:   effective mains voltage (raw data)  (0x00-0xFF) lower byte
+    4:   effective mains current (raw data)  (0x00-0xFF) upper byte
+    5:   effective mains current (raw data)  (0x00-0xFF) lower byte
+    6:   active power (raw data)             (0x00-0xFF) upper byte
+    7:   active power (raw data)             (0x00-0xFF) lower byte
+    8:   reactive power (raw data)           (0x00-0xFF) upper byte
+    9:   reactive power (raw data)           (0x00-0xFF) lower byte
+    A:   apparant power (raw data)           (0x00-0xFF) upper byte
+    B:   apparant power (raw data)           (0x00-0xFF) lower byte
+    C:   cos phi (raw data)                  (0x00-0xFF) upper byte
+    D:   cos phi (raw data)                  (0x00-0xFF) lower byte
+    E:   water flow rate (raw data)          (0x00-0xFF) upper byte
+    F:   water flow rate (raw data)          (0x00-0xFF) lower byte
+
+
+Example incoming (text) log lines in Mode #3
+--------------------------------------------
+
+     0      1    2           3
+  "221213 114421 I Configuration is loaded."
+  "221213 114427 W CH2: MM6D is not accessible."
+  "221213 114427 E ERROR #18: There is not enabled channel!"
+
+    0:   date in yymmdd format
+    1:   time in hhmmss format
+    2:   level (information, warning, error)
+    3:   short description
+
+
+Display
+-------
+  Starting screens
+
+    +--------------------+
+    |    MM8D console    |
+    |--------------------|
+    |sw.: v0.1           |
+    |(C)2022 Pozsar Zsolt|
+    +--------------------+
+    +--------------------+
+    |#0: 115200 b/s      |
+    |#1: 9600 b/s        |
+    |#2: 9600 b/s        |
+    |operation mode: #3  |
+    +--------------------+
+
+  Status screens
+
+    Press F1 to see status screen.
+    You can page up and down with up and down buttons.
+
+    +--------------------+
+    |CH #0  [  ]   STATUS|  CH #0
+    |val   T:00øC        |
+    |in    BE:0 LP:0 HP:0|
+    |out   T1:0 T2:0 T3:0|
+    +--------------------+
+    +--------------------+
+    |CH #1  [  ]   STATUS|  CH #1-8
+    |val   T:00øC RH:100%|
+    |in    OM:H CM:A BE:0|
+    |out   LA:0 VE:0 HE:0|
+    +--------------------+
+    +--------------------+
+    |CH #3  [  ]   STATUS|  CH #1-8
+    |                    |
+    |  disabled channel  |
+    |                    |
+    +--------------------+
+
+  Override screens
+
+    Press F1 to see override screen.
+    You can page up and down with up and down buttons.
+
+    +--------------------+
+    |CH #0  [  ] OVERRIDE|  CH #0
+    |tube #1:     neutral|
+    |tube #2:     neutral|
+    |tube #3:         off|
+    +--------------------+
+    +--------------------+
+    |CH #1  [  ] OVERRIDE|  CH #1-8
+    |lamp:             on|
+    |ventilator:  neutral|
+    |heater:          off|
+    +--------------------+
+
+  Debug log screen
+
+    Press F1 to see debug log screen.
+    You can move up, down, right and left with buttons.
+    Press F2 to lock autoscroll of lines.
+
+    +--------------------+
+    |200919 210133 I Init|
+    |200919 210136 E Over|
+    |200919 210249 W Cann|
+    |                    |
+    +--------------------+
+    +--------------------+
+    |0133 I Initializing |
+    |0136 E Overcurrent b|
+    |0249 W Cannot get ex|
+    |                    |
+    +--------------------+
+    +--------------------+
+    |ializing I/O ports. |
+    |current breaker is o|
+    |ot get external temp|
+    |                    |
+    +--------------------+
+
+
+  Example line: "200919 210133 I Initializing I/O ports."
+
+  Columns:
+    1:  date in yymmdd format
+    2:  time in hhmmss format
+    3:  level of record: I | W | E - information | warning | error
+    4:  short description
+
+  Electricity supply screens
+
+    Press F1 to see power supply screen.
+    You can page up and down with up and down buttons.
+
+    +--------------------+
+    |POWER   [  ]  SUPPLY|
+    |Urms:   234 V       |
+    |Irms:   16.0 A      |
+    |Cos Fi: 1.00        |
+    +--------------------+
+    +--------------------+
+    |POWER   [  ]  SUPPLY|
+    |P:      3746 W      |
+    |Q:      0000 VAr    |
+    |S:      3746 VA     |
+    +--------------------+
+
+  Water supply screens
+
+    Press F1 to see water supply screen.
+    You can page up and down with up and down buttons.
+
+    +--------------------+
+    |WATER   [  ]  SUPPLY|
+    |                    |
+    |qv:     34 l/min    |
+    |                    |
+    +--------------------+
+
+--------------------------------------------------------------------------------------
+  MM8D * Copyright (C) 2020-2023 PozsÃ¡r Zsolt <pozsar.zsolt@szerafingomba.hu>

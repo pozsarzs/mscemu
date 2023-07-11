@@ -1,5 +1,5 @@
-**MSCEmu * Mini serial console emulator for MM8D**
-Copyright (C) 2023 Pozsar Zsolt <pozsarzs@gmail.com>
+**MSCEmu * Mini serial console emulator for MM8D**  
+Copyright (C) 2023 Pozsar Zsolt <pozsarzs@gmail.com>  
 GitHub: <https://github.com/pozsarzs/mscemu>
 
 **Software**

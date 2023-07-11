@@ -12,47 +12,11 @@
 
 program mscemu;
 uses
-  crt;
-const
-  { serial port parameters }
-  bps1200     =   96;
-  bps2400     =   48;
-  bps4800     =   24;
-  bps9600     =   12;
-  bps14400    =    8;
-  bps19200    =    6;
-  bps28800    =    4;
-  bps38400    =    3;
-  bps57600    =    2;
-  bps115200   =    1;
-  pNoneParity =  $00;
-  pEvenParity =  $18;
-  pOddParity  =  $08;
-  s1StopBit   =  $00;
-  s2StopBit   =  $04;
-  d5DataBit   =  $00;
-  d6DataBit   =  $01;
-  d7DataBit   =  $02;
-  d8DataBit   =  $03;
-  COM1        = $3f8;
-  COM2        = $2f8;
-  COM3        = $2e8;
-  COM4        = $3e8;
-  { offset of the UART registers }
-  THR         =  $00;                             { Transmit Holding Register }
-  RBR         =  $00;                               { Receive Buffer Register }
-  DLL         =  $00;                                { Divisor Latch Low byte }
-  DLH         =  $01;                               { Divisor Latch High byte }
-  IER         =  $01;                             { Interrupt Enable Register }
-  IIR         =  $02;                     { Interrupt Identification Register }
-  LCR         =  $03;                                 { Line Control Register }
-  MCR         =  $04;                                { Modem Control Register }
-  LSR         =  $05;                                  { Line Status Register }
-  MSR         =  $06;                                 { Modem Status Register }
-  SCR         =  $07;                                      { Scratch Register }
+  crt,
+  unmouse,
+  unserial,
+  unscreen;
 var
-  ba: word;                                                    { base address }
-  page: byte;                                                { page of screen }
   {general variables}
   b:  byte;
   c:  char;
@@ -60,107 +24,13 @@ var
   p:  byte;
   w:  word;
 
-{ set cursor }
-procedure cursor(b: boolean);
-begin
-  if b then
-    asm
-      MOV AL, $00;
-      MOV AH, $01;
-      MOV CL, $07;
-      MOV CH, $06;
-      INT $10
-  end else
-    asm
-      MOV AL, $00;
-      MOV AH, $01;
-      MOV CL, $00;
-      MOV CH, $10;
-      INT $10
-    end;
-end;
-
-{ set speed of the serial port }
-procedure setspeed(speed: word); assembler;
-asm
-  MOV   DX,ba
-  ADD   DX,LCR
-  IN    AL,DX
-  OR    AL,10000000B
-  OUT   DX,AL
-  MOV   BL,AL
-  SUB   DX,LCR
-  MOV   AX,speed
-  OUT   DX,AX
-  ADD   DX,LCR
-  MOV   AL,BL
-  AND   AL,01111111B
-  OUT   DX,AL
-end;
-
-{ initialize serial port }
-procedure initserialport(com: word; defaults: byte); assembler;
-asm
-  MOV   DX,com
-  MOV   BA,DX
-  IN    AL,DX
-  MOV   AL,defaults
-  AND   AL,01111111B
-  ADD   DX,LCR
-  OUT   DX,AL
-  INC   DX            { MCR      }
-  IN    AL,DX
-  AND   AL,$01
-  OR    AL,$0A
-  OUT   DX,AL         { set  MCR }
-  MOV   DX,ba
-  IN    AL,DX         { read RBR }
-  ADD   DX,MSR
-  IN    AL,DX         { read MSR }
-  DEC   DX
-  IN    AL,DX         { read LSR }
-  SUB   DX,3
-  IN    AL,DX         { read IIR }
-end;
-
-{ send a character via serial port }
-procedure sendchar(c: char); assembler;
-asm
-  MOV   DX,ba
-  ADD   DX,LSR
-@WAIT:
-  IN    AL,DX
-  AND   AL,00100000B
-  JZ    @WAIT
-  SUB   DX,5
-  MOV   AL,c
-  OUT   DX,AL
-end;
-
-{ recevice a character from serial port }
-function  receivechar: char; assembler;
-asm
-  MOV   DX,ba
-  IN    AL,DX          { read RBR }
-end;
-
-{ is there a received character? }
-function  dataready: boolean; assembler;
-asm
-  MOV   DX,ba
-  ADD   DX,LSR
-  IN    AL,DX
-  AND   AL,00000001B
-end;
-
 { write footer to screen }
 procedure footer(page: byte);
 var
   b: byte;
 const
-  FTR: array[1..3] of string=(' F1 Signs  &F2 Status  &F3 Consumption  &ESC Exit',
-                              ' &F1 Signs  F2 Status  &F3 Consumption  &ESC Exit',
-                              ' &F1 Signs  &F2 Status  F3 Consumption  &ESC Exit');
+  FTR: array[0..1] of string=(' &ESC Exit',
+                              ' &F1 Help  &ESC Exit');
 begin
   window(1,1,80,25);
   textbackground(lightgray);
@@ -181,40 +51,46 @@ const
 var
   b: byte;
 begin
-  window(1,1,80,25);
-  textbackground(blue);
   textcolor(white);
-  clrscr;
   case page of
+    0: begin
+         { lines }
+         window(5,5,79,22);
+         textbackground(black);
+         clrscr;
+         window(4,4,77,21);
+         textbackground(cyan);
+         clrscr;
+         window(1,1,80,25);
+         gotoxy(4,4); write('Ú');
+         gotoxy(77,4); write('¿');
+         for b := 5 to 76 do
+         begin
+           gotoxy(b,4); write('Ä');
+           gotoxy(b,21); write('Ä');
+         end;
+         for b := 5 to 20 do
+         begin
+           gotoxy(4,b); write('³');
+           gotoxy(77,b); write('³');
+         end;
+         gotoxy(4,21); write('À');
+         gotoxy(77,21); write('Ù');
+       end;
     1: begin
          { lines }
-         textbackground(cyan);
+         window(1,1,80,25);
+         textbackground(blue);
          clrscr;
          gotoxy(1,1); write('Ú');
          gotoxy(80,1); write('¿');
          for b := 2 to 79 do
          begin
            gotoxy(b,1); write('Ä');
-           gotoxy(b,24); write('Ä');
-         end;
-         for b := 2 to 24 do
-         begin
-           gotoxy(1,b); write('³');
-           gotoxy(80,b); write('³');
-         end;
-         gotoxy(1,24); write('À');
-         gotoxy(80,24); write('Ù');
-       end;
-    2: begin
-         { lines }
-         gotoxy(1,1); write('Ú');
-         gotoxy(80,1); write('¿');
-         for b := 2 to 79 do
-         begin
-           gotoxy(b,1); write('Ä');
-           gotoxy(b,24); write('Ä');
-           gotoxy(b,16); write('Ä');
            gotoxy(b,11); write('Ä');
+           gotoxy(b,16); write('Ä');
+           gotoxy(b,19); write('Ä');
+           gotoxy(b,24); write('Ä');
          end;
          for b := 2 to 24 do
          begin
@@ -229,8 +105,9 @@ begin
          gotoxy(80,24); write('Ù');
          { titles }
          gotoxy(3,1); write(' Status and values ');
-         gotoxy(3,16); write(' Log ');
          gotoxy(3,11); write(' Override ');
+         gotoxy(3,16); write(' Consumption ');
+         gotoxy(3,19); write(' Log ');
          for b := 0 to 7 do
          begin
            gotoxy(3,b + 3);
@@ -254,35 +131,7 @@ begin
            if b = 0 then gotoxy(8,12) else gotoxy(17 + b * 7,12); write('#',b);
          end;
          { log box }
-         window(3,17,78,23);
-         textbackground(black);
-         textcolor(lightgray);
-         clrscr;
-         window(1,1,80,25);
-         textbackground(blue);
-         textcolor(white);
-       end;
-    3: begin
-         { lines }
-         gotoxy(1,1); write('Ú');
-         gotoxy(80,1); write('¿');
-         for b := 2 to 79 do
-         begin
-           gotoxy(b,1); write('Ä');
-           gotoxy(b,16); write('Ä');
-           gotoxy(b,24); write('Ä');
-         end;
-         for b := 2 to 24 do
-         begin
-           gotoxy(1,b); write('³');
-           gotoxy(80,b); write('³');
-         end;
-         gotoxy(1,24); write('À');
-         gotoxy(80,24); write('Ù');
-         { titles }
-         gotoxy(3,16); write(' Log ');
-         { log box }
-         window(3,17,78,23);
+         window(3,20,78,23);
          textbackground(black);
          textcolor(lightgray);
          clrscr;
@@ -298,22 +147,19 @@ end;
 { write log to screen }
 procedure writelog(s: string);
 begin
-  if (length(s) > 0) and (page > 1) then
+  if length(s) > 0 then
   begin
-    window(3,17,78,23);
+    window(3,20,78,23);
     textbackground(black);
     textcolor(lightgray);
-    if p = 8 then
+    if p = 5 then
     begin
       gotoxy(1,p - 1);
       writeln;
     end;
-    if p = 8 then gotoxy(2,p - 1) else gotoxy(2,p);
+    if p = 5 then gotoxy(2,p - 1) else gotoxy(2,p);
     write(s);
-    if p < 8 then inc(p);
-    window(1,1,80,25);
-    textcolor(white);
-    textbackground(blue);
+    if p < 5 then inc(p);
   end;
 end;
 
@@ -362,7 +208,7 @@ var
   end;
 
 begin
-  if (length(s) >= 10) and (page = 2) then
+  if length(s) >= 10 then
   begin
     window(1,1,80,25);
     textbackground(blue);
@@ -398,14 +244,31 @@ begin
   end;
 end;
 
+{ write SP data to screen }
 procedure writespdata(s: string);
 begin
-  if (length(s) >= 10) and (page = 3) then
+  if length(s) = 16 then
   begin
     window(1,1,80,25);
     textbackground(blue);
     textcolor(white);
   end;
+end;
+
+{ write help to screen }
+procedure help;
+var
+  c: char;
+begin
+  savescreen;
+  frame(0);
+  { sz”veg }
+  repeat
+    if keypressed then
+      c := readkey;
+  until c = #27;
+  frame(1);
+  restorescreen;
 end;
 
 begin
@@ -418,17 +281,18 @@ begin
         if paramstr(1) = '3' then w := COM3 else
           if paramstr(1) = '4' then w := COM4 else
             begin
-              writeln('Usage: mscemu.exe [1..4]  COMx port');
+              writeln('Usage: mscemu.exe [1..4]');
+              writeln('  1..4: COM #1..#4 port');
               halt(1);
             end;
   end;
   { init serial port }
-  initserialport(w,PNoneParity or s1StopBit or d8DataBit);
-  setspeed(bps9600);
-  { make background }
+  initserialport(w,unserial.PNoneParity or unserial.s1StopBit or unserial.d8DataBit);
+  setspeed(unserial.bps9600);
+  mousecursor(true);
   cursor(false);
-  page := 2;
-  frame(page);
+  { start page }
+  frame(1);
   { read from serial port and write data to screen }
   b := 0;
   s := '';
@@ -438,9 +302,7 @@ begin
     begin
       c := readkey;
       if c = #0 then c := readkey;
-      if c = #59 then begin page := 1; frame(page); end;
-      if c = #60 then begin page := 2; frame(page); end;
-      if c = #61 then begin page := 3; frame(page); end;
+      if c = #59 then help;
     end;
     if dataready then
     begin
@@ -456,9 +318,11 @@ begin
       s := '';
       b := 0;
     end;
- until c = #27;
- cursor(true);
- textbackground(black);
- textcolor(lightgray);
- clrscr;
+  until c = #27;
+  window(1,1,80,25);
+  textbackground(black);
+  textcolor(lightgray);
+  clrscr;
+  cursor(true);
+  mousecursor(false);
 end.

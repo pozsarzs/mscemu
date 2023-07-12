@@ -17,12 +17,41 @@ uses
   unserial,
   unscreen;
 var
-  {general variables}
+  { general variables }
   b:  byte;
   c:  char;
   s:  string;
   p:  byte;
   w:  word;
+const
+  { signs of the values }
+  CH0: array[0..7] of string  = ('T','','BE','LP','HP','T1','T2','T3');
+  CH1: array[0..7] of string  = ('T','RH','OM','CM','BE','LA','VE','HE');
+  SP:  array[0..6] of string  = ('Urms','Irms','cosFi','P','Q','S','qv');
+  { description of the signs }
+  DCH0: array[0..7] of string = ('external temperature in øC',
+                                 '',
+                                 'overcurrent breaker error',
+                                 'low water pressure error',
+                                 'high water pressure error',
+                                 'status of the 1st water tube',
+                                 'status of the 2nd water tube',
+                                 'status of the 3rd water tube');
+  DCH1: array[0..7] of string = ('internal temperature in øC',
+                                 'internal relative humidity in %',
+                                 'operation mode (hyphae/mushroom)',
+                                 'control mode (auto/manual)',
+                                 'overcurrent breaker error',
+                                 'status of the lamp output',
+                                 'status of the ventilator output',
+                                 'status of the heater output');
+  DSP:  array[0..6] of string = ('effective voltage in V',
+                                 'effective current in A',
+                                 'power factor',
+                                 'active power in W',
+                                 'reactive power in VAr',
+                                 'apparent power in VA',
+                                 'water flow rate in l/min');
 
 { write footer to screen }
 procedure footer(page: byte);
@@ -32,9 +61,9 @@ const
   FTR: array[0..1] of string=(' &ESC Exit',
                               ' &F1 Help  &ESC Exit');
 begin
-  window(1,1,80,25);
-  textbackground(lightgray);
   textcolor(black);
+  textbackground(lightgray);
+  window(1,1,80,25);
   gotoxy(1,25); clreol;
   for b := 1 to length(FTR[page]) do
   begin
@@ -45,9 +74,6 @@ end;
 
 { write frame to screen }
 procedure frame(page: byte);
-const
-  CH0: array[0..7] of string = ('T','','BE','LP','HP','T1','T2','T3');
-  CH1: array[0..7] of string = ('T','RH','OM','CM','BE','LA','VE','HE');
 var
   b: byte;
 begin
@@ -55,32 +81,34 @@ begin
   case page of
     0: begin
          { lines }
-         window(5,5,79,22);
          textbackground(black);
+         window(5,4,79,22);
          clrscr;
-         window(4,4,77,21);
          textbackground(cyan);
+         window(4,3,77,21);
          clrscr;
          window(1,1,80,25);
-         gotoxy(4,4); write('Ú');
-         gotoxy(77,4); write('¿');
+         gotoxy(4,3); write('Ú');
+         gotoxy(77,3); write('¿');
          for b := 5 to 76 do
          begin
-           gotoxy(b,4); write('Ä');
+           gotoxy(b,3); write('Ä');
            gotoxy(b,21); write('Ä');
          end;
-         for b := 5 to 20 do
+         for b := 4 to 20 do
          begin
            gotoxy(4,b); write('³');
            gotoxy(77,b); write('³');
          end;
          gotoxy(4,21); write('À');
          gotoxy(77,21); write('Ù');
+         { titles }
+         gotoxy(6,3); write(' Help ');
        end;
     1: begin
          { lines }
-         window(1,1,80,25);
          textbackground(blue);
+         window(1,1,80,25);
          clrscr;
          gotoxy(1,1); write('Ú');
          gotoxy(80,1); write('¿');
@@ -105,6 +133,7 @@ begin
          gotoxy(80,24); write('Ù');
          { titles }
          gotoxy(3,1); write(' Status and values ');
+         gotoxy(70,1); write(' HH:MM:SS ');
          gotoxy(3,11); write(' Override ');
          gotoxy(3,16); write(' Consumption ');
          gotoxy(3,19); write(' Log ');
@@ -120,6 +149,13 @@ begin
              gotoxy(19,b + 8); write(CH1[b] + ':');
            end;
          end;
+         for b := 0 to 1 do
+         begin
+           gotoxy(3,b + 17); write(SP[b] + ':');
+           gotoxy(23,b + 17); write(SP[b+2] + ':');
+           gotoxy(43,b + 17); write(SP[b+4] + ':');
+           gotoxy(63,b + 17); if b + 6 < 7 then write(SP[b+6] + ':');
+         end;
          textcolor(yellow);
          gotoxy(3,2); write('CH:');
          gotoxy(19,2); write('CH:');
@@ -131,13 +167,13 @@ begin
            if b = 0 then gotoxy(8,12) else gotoxy(17 + b * 7,12); write('#',b);
          end;
          { log box }
-         window(3,20,78,23);
-         textbackground(black);
          textcolor(lightgray);
+         textbackground(black);
+         window(3,20,78,23);
          clrscr;
          window(1,1,80,25);
-         textbackground(blue);
          textcolor(white);
+         textbackground(blue);
        end;
   end;
   { footer }
@@ -149,9 +185,9 @@ procedure writelog(s: string);
 begin
   if length(s) > 0 then
   begin
-    window(3,20,78,23);
-    textbackground(black);
     textcolor(lightgray);
+    textbackground(black);
+    window(3,20,78,23);
     if p = 5 then
     begin
       gotoxy(1,p - 1);
@@ -210,9 +246,9 @@ var
 begin
   if length(s) >= 10 then
   begin
-    window(1,1,80,25);
-    textbackground(blue);
     textcolor(white);
+    textbackground(blue);
+    window(1,1,80,25);
     if s[3] = #0 then
     begin
       { CH #0 }
@@ -249,26 +285,63 @@ procedure writespdata(s: string);
 begin
   if length(s) = 16 then
   begin
-    window(1,1,80,25);
-    textbackground(blue);
     textcolor(white);
+    textbackground(blue);
+    window(1,1,80,25);
   end;
 end;
 
 { write help to screen }
 procedure help;
 var
+  b: byte;
   c: char;
+
+  function addspace(l: byte; s: string): string;
+  begin
+    s := s + ': ';
+    while length(s) < l + 2 do
+      s := s + ' ';
+    addspace := s;
+  end;
+
 begin
+  mousecursor(false);
   savescreen;
+  mousecursor(true);
   frame(0);
-  { sz”veg }
+  textcolor(white);
+  textbackground(cyan);
+  window(1,1,80,25);
+  { content }
+  for b:= 0 to 7 do
+  begin
+    if length(CH0[b]) > 0 then
+    begin
+      if b < 2
+        then gotoxy(7,5 + b)
+        else gotoxy(7,5 + b - 1);
+      write(addspace(2,CH0[b]) + DCH0[b]);
+    end;
+    if length(CH1[b]) > 0 then
+    begin
+      gotoxy(7,13 + b); write(addspace(2,CH1[b]) + DCH1[b]);
+    end;
+    if length(SP[b]) > 0 then
+      if b < 7 then
+      begin
+        gotoxy(46,5 + b); write(addspace(5,SP[b]) + DSP[b]);
+      end;
+  end;
   repeat
-    if keypressed then
-      c := readkey;
+    if keypressed then c := readkey;
+    if mouseclick(1,2,25,9,25) then c := #27;
+    showtime;
   until c = #27;
   frame(1);
+  mousecursor(false);
   restorescreen;
+  mousecursor(true);
 end;
 
 begin
@@ -298,12 +371,15 @@ begin
   s := '';
   p := 1;
   repeat
+    c := #128;
     if keypressed then
     begin
       c := readkey;
       if c = #0 then c := readkey;
-      if c = #59 then help;
     end;
+    if mouseclick(1,2,25,8,25) then c := #59;
+    if mouseclick(1,11,25,18,25) then c := #27;
+    if c = #59 then help;
     if dataready then
     begin
       s := s + receivechar;
@@ -317,11 +393,12 @@ begin
       if s[1] + s[2] = 'SP' then writespdata(s);
       s := '';
       b := 0;
+      showtime;
     end;
   until c = #27;
-  window(1,1,80,25);
-  textbackground(black);
   textcolor(lightgray);
+  textbackground(black);
+  window(1,1,80,25);
   clrscr;
   cursor(true);
   mousecursor(false);

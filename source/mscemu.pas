@@ -291,7 +291,68 @@ begin
   end;
 end;
 
-{ write help to screen }
+{ show hint on footer }
+procedure hint(x, y: integer);
+var
+  cleaned: boolean;
+
+
+procedure show(s: string);
+begin
+  textcolor(black);
+  textbackground(lightgray);
+  window(1,1,80,25);
+  gotoxy(30,25); clreol;
+  gotoxy(80 - length(s),25);
+  write(s);
+  cleaned := false;
+end;
+
+procedure hide;
+begin
+  textcolor(black);
+  textbackground(lightgray);
+  window(1,1,80,25);
+  gotoxy(30,25); clreol;
+  show('Hint: move mouse cursor over value');
+  cleaned := true;
+end;
+
+begin
+  cleaned := false;
+  { status and values of the CH #0 }
+  if (x >= 3) and (y >=3 ) and (x <= 5) and (y <= 10)
+    then show(DCH0[y - 3])
+    else
+      { status and values of the CH #1-8 }
+      if (x >= 19) and (y >=3) and (x <= 21) and (y <=10)
+      then show(DCH1[y - 3])
+      else
+        { override of the CH #0 }
+        if (x >= 3) and (y >= 13) and (x <= 5) and (y <= 15)
+        then show(DCH0[y - 8])
+        else
+          { override of the CH #1-8 }
+          if (x >= 19) and (y >= 13) and (x <= 21) and (y <= 15)
+          then show(DCH1[y - 8])
+          else
+            { consumption }
+            if (x >= 3) and (y >= 17) and (x <= 7) and (y <= 18)
+            then show(DSP[y - 17])
+            else
+              if (x >= 23) and (y >= 17) and (x <= 28) and (y <= 18)
+              then show(DSP[y - 15])
+              else
+                if (x >= 43) and (y >= 17) and (x <= 44) and (y <= 18)
+                then show(DSP[y - 13])
+                else
+                  if (x >= 63) and (y >= 17) and (x <= 65) and (y <= 17)
+                  then show(DSP[y - 11])
+                  else
+                    if cleaned = false then hide;
+end;
+
+{ show help box }
 procedure help;
 var
   b: byte;
@@ -362,11 +423,11 @@ begin
   { init serial port }
   initserialport(w,unserial.PNoneParity or unserial.s1StopBit or unserial.d8DataBit);
   setspeed(unserial.bps9600);
-  mousecursor(true);
   cursor(false);
   { start page }
   frame(1);
   { read from serial port and write data to screen }
+  mousecursor(true);
   b := 0;
   s := '';
   p := 1;
@@ -394,6 +455,7 @@ begin
       s := '';
       b := 0;
       showtime;
+      hint(mouseposx,mouseposy);
     end;
   until c = #27;
   textcolor(lightgray);

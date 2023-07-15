@@ -13,6 +13,7 @@
 program mscemu;
 uses
   crt,
+  undt510,
   unmouse,
   unserial,
   unscreen;
@@ -219,8 +220,8 @@ var
   begin
     gotoxy(x,y);
     case c of
-      #2: write('off');
-      #3: write('on');
+      #2: write('off  ');
+      #3: write('on   ');
     else
       write('neut.');
     end;
@@ -283,11 +284,21 @@ end;
 { write SP data to screen }
 procedure writespdata(s: string);
 begin
-  if length(s) = 16 then
+  if length(s) > 15 then
   begin
     textcolor(white);
     textbackground(blue);
+    window(9,17,21,18);clrscr;
+    window(30,17,41,18);clrscr;
+    window(46,17,61,18);clrscr;
     window(1,1,80,25);
+    gotoxy(9,17); write(urms(ord(s[3]) * 256 + ord(s[4])):0:2,' V');
+    gotoxy(9,18); write(irms(ord(s[5]) * 256 + ord(s[6])):0:2,' A');
+    gotoxy(30,17); write(pf(ord(s[7]) * 256 + ord(s[8])):0:4);
+    gotoxy(30,18); write(pqs(ord(s[7]) * 256 + ord(s[8])):0:2,' W');
+    gotoxy(46,17); write(pqs(ord(s[9]) * 256 + ord(s[10])):0:2,' VAr');
+    gotoxy(46,18); write(pqs(ord(s[11]) * 256 + ord(s[12])):0:2,' VA');
+    gotoxy(67,17); write(pqs(ord(s[9]) * 256 + ord(s[10])):0:2,' l/min');
   end;
 end;
 

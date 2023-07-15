@@ -14,7 +14,6 @@ unit unscreen;
 interface
 uses
   crt,
-  unmouse,
   dos;
 var
   buffer:    array[1..4000] of byte;

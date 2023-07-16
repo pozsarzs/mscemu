@@ -14,6 +14,7 @@ program mscemu;
 uses
   crt,
   undt510,
+  unflowrt,
   unmouse,
   unserial,
   unscreen;
@@ -25,6 +26,7 @@ var
   p:  byte;
   w:  word;
 const
+  CT:  byte=10;                            { ratio of the current transformer }
   { signs of the values }
   CH0: array[0..7] of string  = ('T','','BE','LP','HP','T1','T2','T3');
   CH1: array[0..7] of string  = ('T','RH','OM','CM','BE','LA','VE','HE');
@@ -293,12 +295,12 @@ begin
     window(46,17,61,18);clrscr;
     window(1,1,80,25);
     gotoxy(9,17); write(urms(ord(s[3]) * 256 + ord(s[4])):0:2,' V');
-    gotoxy(9,18); write(irms(ord(s[5]) * 256 + ord(s[6])):0:2,' A');
-    gotoxy(30,17); write(pf(ord(s[7]) * 256 + ord(s[8])):0:4);
-    gotoxy(30,18); write(pqs(ord(s[7]) * 256 + ord(s[8])):0:2,' W');
-    gotoxy(46,17); write(pqs(ord(s[9]) * 256 + ord(s[10])):0:2,' VAr');
-    gotoxy(46,18); write(pqs(ord(s[11]) * 256 + ord(s[12])):0:2,' VA');
-    gotoxy(67,17); write(pqs(ord(s[9]) * 256 + ord(s[10])):0:2,' l/min');
+    gotoxy(9,18); write((irms(ord(s[5]) * 256 + ord(s[6])) * CT):0:2,' A');
+    gotoxy(30,18); write((pqs(ord(s[7]) * 256 + ord(s[8])) * CT):0:2,' W');
+    gotoxy(46,17); write((pqs(ord(s[9]) * 256 + ord(s[10])) * CT):0:2,' VAr');
+    gotoxy(46,18); write((pqs(ord(s[11]) * 256 + ord(s[12])) * CT):0:2,' VA');
+    gotoxy(30,17); write(pf(ord(s[13]) * 256 + ord(s[14])):0:4);
+    gotoxy(67,17); write(qv(ord(s[15]) * 256 + ord(s[16])):0:2,' l/min');
   end;
 end;
 

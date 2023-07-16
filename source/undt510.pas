@@ -14,7 +14,7 @@ unit undt510;
 interface
 
 function pqs(l: longint): real;
-Function urms(l: longint): real;
+function urms(l: longint): real;
 function irms(l: longint): real;
 function pf(i: integer): real;
 
